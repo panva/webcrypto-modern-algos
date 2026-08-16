@@ -157,6 +157,10 @@
       eliminating the need to store both the public and private key separately when only the private key is needed.
     </p>
     <p>
+      This proposal also defines <a href="#SubtleCrypto-synchronous-methods">synchronous counterparts</a>
+      for each of these Promise-returning methods.
+    </p>
+    <p>
       Finally, this proposal aims to make feature detection easier,
       by adding a <a href="#dfn-SubtleCrypto-method-supports">`SubtleCrypto.supports`</a> function,
       which can be used to detect whether a given algorithm identifier
@@ -199,7 +203,18 @@ partial interface SubtleCrypto {
     boolean extractable,
     sequence&lt;KeyUsage> keyUsages
   );
+  EncapsulatedKey encapsulateKeySync(
+    AlgorithmIdentifier encapsulationAlgorithm,
+    CryptoKey encapsulationKey,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence&lt;KeyUsage> keyUsages
+  );
   Promise&lt;EncapsulatedBits> encapsulateBits(
+    AlgorithmIdentifier encapsulationAlgorithm,
+    CryptoKey encapsulationKey
+  );
+  EncapsulatedBits encapsulateBitsSync(
     AlgorithmIdentifier encapsulationAlgorithm,
     CryptoKey encapsulationKey
   );
@@ -212,13 +227,30 @@ partial interface SubtleCrypto {
     boolean extractable,
     sequence&lt;KeyUsage> keyUsages
   );
+  CryptoKey decapsulateKeySync(
+    AlgorithmIdentifier decapsulationAlgorithm,
+    CryptoKey decapsulationKey,
+    BufferSource ciphertext,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence&lt;KeyUsage> keyUsages
+  );
   Promise&lt;ArrayBuffer> decapsulateBits(
+    AlgorithmIdentifier decapsulationAlgorithm,
+    CryptoKey decapsulationKey,
+    BufferSource ciphertext
+  );
+  ArrayBuffer decapsulateBitsSync(
     AlgorithmIdentifier decapsulationAlgorithm,
     CryptoKey decapsulationKey,
     BufferSource ciphertext
   );
 
   Promise&lt;CryptoKey> getPublicKey(
+    CryptoKey key,
+    sequence&lt;KeyUsage> keyUsages
+  );
+  CryptoKey getPublicKeySync(
     CryptoKey key,
     sequence&lt;KeyUsage> keyUsages
   );
@@ -265,7 +297,8 @@ enum KeyFormat { "raw-public", "raw-private", "raw-seed", "raw-secret", "raw", "
           {{KeyFormat/"raw-public"}} acts as an alias of {{KeyFormat/"raw"}}.
         </p>
         <p>
-          In the {{SubtleCrypto/deriveKey()}} method, in the import key step,
+          In the {{SubtleCrypto/deriveKey()}} and {{SubtleCrypto/deriveKeySync()}} methods, in the
+          import key step,
           {{KeyFormat/"raw-secret"}} must be used as the format instead of {{KeyFormat/"raw"}}.
         </p>
       </section>
@@ -283,19 +316,74 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
         </p>
         <dl data-dfn-for=KeyUsage>
           <dt><dfn data-idl>encapsulateKey</dfn></dt>
-          <dd>Enable using the key with {{SubtleCrypto.encapsulateKey}}.</dd>
+          <dd>
+            Enable using the key with {{SubtleCrypto.encapsulateKey}} and
+            {{SubtleCrypto.encapsulateKeySync}}.
+          </dd>
           <dt><dfn data-idl>encapsulateBits</dfn></dt>
-          <dd>Enable using the key with {{SubtleCrypto.encapsulateBits}}.</dd>
+          <dd>
+            Enable using the key with {{SubtleCrypto.encapsulateBits}} and
+            {{SubtleCrypto.encapsulateBitsSync}}.
+          </dd>
           <dt><dfn data-idl>decapsulateKey</dfn></dt>
-          <dd>Enable using the key with {{SubtleCrypto.decapsulateKey}}.</dd>
+          <dd>
+            Enable using the key with {{SubtleCrypto.decapsulateKey}} and
+            {{SubtleCrypto.decapsulateKeySync}}.
+          </dd>
           <dt><dfn data-idl>decapsulateBits</dfn></dt>
-          <dd>Enable using the key with {{SubtleCrypto.decapsulateBits}}.</dd>
+          <dd>
+            Enable using the key with {{SubtleCrypto.decapsulateBits}} and
+            {{SubtleCrypto.decapsulateBitsSync}}.
+          </dd>
         </dl>
       </section>
     </section>
 
     <section id="partial-subtlecrypto-interface-methods">
       <h3>Methods and Parameters</h3>
+      <section id="SubtleCrypto-synchronous-methods">
+        <h4>Synchronous methods</h4>
+        <p>
+          Each synchronous method in the following table MUST perform the
+          <a data-cite="webcrypto#dfn-synchronous-method-steps">synchronous method steps</a>
+          for its corresponding Promise-returning method.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Synchronous method</th>
+              <th>Corresponding Promise-returning method</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><dfn id="dfn-SubtleCrypto-method-encapsulateKeySync" data-dfn-for=SubtleCrypto>encapsulateKeySync</dfn></td>
+              <td>{{SubtleCrypto/encapsulateKey()}}</td>
+            </tr>
+            <tr>
+              <td><dfn id="dfn-SubtleCrypto-method-encapsulateBitsSync" data-dfn-for=SubtleCrypto>encapsulateBitsSync</dfn></td>
+              <td>{{SubtleCrypto/encapsulateBits()}}</td>
+            </tr>
+            <tr>
+              <td><dfn id="dfn-SubtleCrypto-method-decapsulateKeySync" data-dfn-for=SubtleCrypto>decapsulateKeySync</dfn></td>
+              <td>{{SubtleCrypto/decapsulateKey()}}</td>
+            </tr>
+            <tr>
+              <td><dfn id="dfn-SubtleCrypto-method-decapsulateBitsSync" data-dfn-for=SubtleCrypto>decapsulateBitsSync</dfn></td>
+              <td>{{SubtleCrypto/decapsulateBits()}}</td>
+            </tr>
+            <tr>
+              <td><dfn id="dfn-SubtleCrypto-method-getPublicKeySync" data-dfn-for=SubtleCrypto>getPublicKeySync</dfn></td>
+              <td>{{SubtleCrypto/getPublicKey()}}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          These methods have the same algorithm availability and key-usage checks as their
+          corresponding Promise-returning methods.
+        </p>
+      </section>
+
       <section id="SubtleCrypto-method-encapsulateKey">
         <h4>The encapsulateKey method</h4>
         <p>
@@ -906,6 +994,11 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
 
       <section id="SubtleCrypto-method-supports">
         <h4>The supports method</h4>
+        <p>
+          To check support for a synchronous counterpart defined by this specification or
+          [[webcrypto]], use the operation name of its corresponding Promise-returning method.
+          The names of synchronous counterparts are not recognized as operation names.
+        </p>
         <p>
           The <dfn id="dfn-SubtleCrypto-method-supports" data-dfn-for=SubtleCrypto data-lt="supports">supports(|operation|, |algorithm|, |length|)</dfn>
           method returns a boolean indicating whether the implementation
@@ -6173,7 +6266,8 @@ dictionary AeadParams : Algorithm {
       </p>
       <p class="note">
         Although technically possible to implement, using cSHAKE as part of other algorithms
-        outside {{SubtleCrypto/digest()}} (such as in the {{HmacKeyGenParams/hash}} parameter of HMAC)
+        outside {{SubtleCrypto/digest()}} or {{SubtleCrypto/digestSync()}} (such as in the
+        {{HmacKeyGenParams/hash}} parameter of HMAC)
         is unlikely to be useful and not expected to be supported.
         The result of {{SubtleCrypto/supports()}} should reflect whether such uses are supported.
       </p>
@@ -6309,7 +6403,8 @@ dictionary CShakeParams : Algorithm {
       </p>
       <p class="note">
         Although technically possible to implement, using TurboSHAKE as part of other algorithms
-        outside {{SubtleCrypto/digest()}} (such as in the {{HmacKeyGenParams/hash}} parameter of HMAC)
+        outside {{SubtleCrypto/digest()}} or {{SubtleCrypto/digestSync()}} (such as in the
+        {{HmacKeyGenParams/hash}} parameter of HMAC)
         is unlikely to be useful and not expected to be supported.
         The result of {{SubtleCrypto/supports()}} should reflect whether such uses are supported.
       </p>
@@ -6449,7 +6544,8 @@ dictionary TurboShakeParams : Algorithm {
       </p>
       <p class="note">
         Although technically possible to implement, using KangarooTwelve as part of other algorithms
-        outside {{SubtleCrypto/digest()}} (such as in the {{HmacKeyGenParams/hash}} parameter of HMAC)
+        outside {{SubtleCrypto/digest()}} or {{SubtleCrypto/digestSync()}} (such as in the
+        {{HmacKeyGenParams/hash}} parameter of HMAC)
         is unlikely to be useful and not expected to be supported.
         The result of {{SubtleCrypto/supports()}} should reflect whether such uses are supported.
       </p>
