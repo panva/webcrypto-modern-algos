@@ -157,14 +157,16 @@
       eliminating the need to store both the public and private key separately when only the private key is needed.
     </p>
     <p>
-      This proposal also defines <a href="#SubtleCrypto-synchronous-methods">synchronous counterparts</a>
-      for each of these Promise-returning methods.
+      This proposal also extends {{SyncSubtleCrypto}} with synchronous methods having the same
+      names and operations.
     </p>
     <p>
       Finally, this proposal aims to make feature detection easier,
       by adding a <a href="#dfn-SubtleCrypto-method-supports">`SubtleCrypto.supports`</a> function,
       which can be used to detect whether a given algorithm identifier
       (including any parameters) is supported for the given operation.
+      It also adds {{SyncSubtleCrypto/supports()}} for the independently selected synchronous
+      capabilities of a {{SyncSubtleCrypto}} object.
     </p>
   </section>
   <section id="specification-conventions">
@@ -176,6 +178,9 @@
       algorithm, it MUST implement all of the supported operations specified in this
       document, and must perform the steps to <a data-cite="webcrypto#concept-define-an-algorithm">define an algorithm</a>
       specified in section 18.4.3 of [[webcrypto]] for each of the supported operations.
+      These requirements define availability through {{SubtleCrypto}}. Availability through
+      {{SyncSubtleCrypto}} is selected independently, per operation and normalized parameters,
+      without defining new operation names or duplicating algorithm registrations.
     </p>
     <p>
       In addition to the <a data-cite="webcrypto#supported-operation">supported operations</a>
@@ -189,9 +194,10 @@
   </section>
 
   <section id="partial-subtlecrypto-interface">
-    <h2>Partial SubtleCrypto interface</h2>
+    <h2>Partial SubtleCrypto and SyncSubtleCrypto interfaces</h2>
     <p>
-      This section extends the {{SubtleCrypto}} interface of [[webcrypto]].
+      This section extends the {{SubtleCrypto}} and {{SyncSubtleCrypto}} interfaces of
+      [[webcrypto]].
     </p>
     <pre class="idl">
 [SecureContext,Exposed=(Window,Worker)]
@@ -203,18 +209,7 @@ partial interface SubtleCrypto {
     boolean extractable,
     sequence&lt;KeyUsage> keyUsages
   );
-  EncapsulatedKey encapsulateKeySync(
-    AlgorithmIdentifier encapsulationAlgorithm,
-    CryptoKey encapsulationKey,
-    AlgorithmIdentifier sharedKeyAlgorithm,
-    boolean extractable,
-    sequence&lt;KeyUsage> keyUsages
-  );
   Promise&lt;EncapsulatedBits> encapsulateBits(
-    AlgorithmIdentifier encapsulationAlgorithm,
-    CryptoKey encapsulationKey
-  );
-  EncapsulatedBits encapsulateBitsSync(
     AlgorithmIdentifier encapsulationAlgorithm,
     CryptoKey encapsulationKey
   );
@@ -227,20 +222,7 @@ partial interface SubtleCrypto {
     boolean extractable,
     sequence&lt;KeyUsage> keyUsages
   );
-  CryptoKey decapsulateKeySync(
-    AlgorithmIdentifier decapsulationAlgorithm,
-    CryptoKey decapsulationKey,
-    BufferSource ciphertext,
-    AlgorithmIdentifier sharedKeyAlgorithm,
-    boolean extractable,
-    sequence&lt;KeyUsage> keyUsages
-  );
   Promise&lt;ArrayBuffer> decapsulateBits(
-    AlgorithmIdentifier decapsulationAlgorithm,
-    CryptoKey decapsulationKey,
-    BufferSource ciphertext
-  );
-  ArrayBuffer decapsulateBitsSync(
     AlgorithmIdentifier decapsulationAlgorithm,
     CryptoKey decapsulationKey,
     BufferSource ciphertext
@@ -250,15 +232,52 @@ partial interface SubtleCrypto {
     CryptoKey key,
     sequence&lt;KeyUsage> keyUsages
   );
-  CryptoKey getPublicKeySync(
-    CryptoKey key,
-    sequence&lt;KeyUsage> keyUsages
-  );
 
   static boolean supports(DOMString operation,
                    AlgorithmIdentifier algorithm,
                    optional [EnforceRange] unsigned long? length = null);
   static boolean supports(DOMString operation,
+                   AlgorithmIdentifier algorithm,
+                   AlgorithmIdentifier additionalAlgorithm);
+};
+
+[SecureContext,Exposed=(Window,Worker)]
+partial interface SyncSubtleCrypto {
+  SyncEncapsulatedKey encapsulateKey(
+    AlgorithmIdentifier encapsulationAlgorithm,
+    SyncCryptoKey encapsulationKey,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence&lt;KeyUsage> keyUsages
+  );
+  EncapsulatedBits encapsulateBits(
+    AlgorithmIdentifier encapsulationAlgorithm,
+    SyncCryptoKey encapsulationKey
+  );
+
+  SyncCryptoKey decapsulateKey(
+    AlgorithmIdentifier decapsulationAlgorithm,
+    SyncCryptoKey decapsulationKey,
+    BufferSource ciphertext,
+    AlgorithmIdentifier sharedKeyAlgorithm,
+    boolean extractable,
+    sequence&lt;KeyUsage> keyUsages
+  );
+  ArrayBuffer decapsulateBits(
+    AlgorithmIdentifier decapsulationAlgorithm,
+    SyncCryptoKey decapsulationKey,
+    BufferSource ciphertext
+  );
+
+  SyncCryptoKey getPublicKey(
+    SyncCryptoKey key,
+    sequence&lt;KeyUsage> keyUsages
+  );
+
+  boolean supports(DOMString operation,
+                   AlgorithmIdentifier algorithm,
+                   optional [EnforceRange] unsigned long? length = null);
+  boolean supports(DOMString operation,
                    AlgorithmIdentifier algorithm,
                    AlgorithmIdentifier additionalAlgorithm);
 };
@@ -297,7 +316,7 @@ enum KeyFormat { "raw-public", "raw-private", "raw-seed", "raw-secret", "raw", "
           {{KeyFormat/"raw-public"}} acts as an alias of {{KeyFormat/"raw"}}.
         </p>
         <p>
-          In the {{SubtleCrypto/deriveKey()}} and {{SubtleCrypto/deriveKeySync()}} methods, in the
+          In the {{SubtleCrypto/deriveKey()}} and {{SyncSubtleCrypto/deriveKey()}} methods, in the
           import key step,
           {{KeyFormat/"raw-secret"}} must be used as the format instead of {{KeyFormat/"raw"}}.
         </p>
@@ -317,23 +336,23 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
         <dl data-dfn-for=KeyUsage>
           <dt><dfn data-idl>encapsulateKey</dfn></dt>
           <dd>
-            Enable using the key with {{SubtleCrypto.encapsulateKey}} and
-            {{SubtleCrypto.encapsulateKeySync}}.
+            Enable using the key with {{SubtleCrypto/encapsulateKey()}} or
+            {{SyncSubtleCrypto/encapsulateKey()}}.
           </dd>
           <dt><dfn data-idl>encapsulateBits</dfn></dt>
           <dd>
-            Enable using the key with {{SubtleCrypto.encapsulateBits}} and
-            {{SubtleCrypto.encapsulateBitsSync}}.
+            Enable using the key with {{SubtleCrypto/encapsulateBits()}} or
+            {{SyncSubtleCrypto/encapsulateBits()}}.
           </dd>
           <dt><dfn data-idl>decapsulateKey</dfn></dt>
           <dd>
-            Enable using the key with {{SubtleCrypto.decapsulateKey}} and
-            {{SubtleCrypto.decapsulateKeySync}}.
+            Enable using the key with {{SubtleCrypto/decapsulateKey()}} or
+            {{SyncSubtleCrypto/decapsulateKey()}}.
           </dd>
           <dt><dfn data-idl>decapsulateBits</dfn></dt>
           <dd>
-            Enable using the key with {{SubtleCrypto.decapsulateBits}} and
-            {{SubtleCrypto.decapsulateBitsSync}}.
+            Enable using the key with {{SubtleCrypto/decapsulateBits()}} or
+            {{SyncSubtleCrypto/decapsulateBits()}}.
           </dd>
         </dl>
       </section>
@@ -341,46 +360,61 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
 
     <section id="partial-subtlecrypto-interface-methods">
       <h3>Methods and Parameters</h3>
-      <section id="SubtleCrypto-synchronous-methods">
-        <h4>Synchronous methods</h4>
+      <section id="SyncSubtleCrypto-modern-methods">
+        <h4>SyncSubtleCrypto methods</h4>
         <p>
-          Each synchronous method in the following table MUST perform the
+          Each {{SyncSubtleCrypto}} method in the following table MUST perform the
           <a data-cite="webcrypto#dfn-synchronous-method-steps">synchronous method steps</a>
-          for its corresponding Promise-returning method.
+          for its same-named {{SubtleCrypto}} method.
         </p>
         <table>
           <thead>
             <tr>
-              <th>Synchronous method</th>
-              <th>Corresponding Promise-returning method</th>
+              <th>SyncSubtleCrypto method</th>
+              <th>SubtleCrypto method</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><dfn id="dfn-SubtleCrypto-method-encapsulateKeySync" data-dfn-for=SubtleCrypto>encapsulateKeySync</dfn></td>
+              <td><dfn id="dfn-SyncSubtleCrypto-method-encapsulateKey" data-dfn-for=SyncSubtleCrypto>encapsulateKey</dfn></td>
               <td>{{SubtleCrypto/encapsulateKey()}}</td>
             </tr>
             <tr>
-              <td><dfn id="dfn-SubtleCrypto-method-encapsulateBitsSync" data-dfn-for=SubtleCrypto>encapsulateBitsSync</dfn></td>
+              <td><dfn id="dfn-SyncSubtleCrypto-method-encapsulateBits" data-dfn-for=SyncSubtleCrypto>encapsulateBits</dfn></td>
               <td>{{SubtleCrypto/encapsulateBits()}}</td>
             </tr>
             <tr>
-              <td><dfn id="dfn-SubtleCrypto-method-decapsulateKeySync" data-dfn-for=SubtleCrypto>decapsulateKeySync</dfn></td>
+              <td><dfn id="dfn-SyncSubtleCrypto-method-decapsulateKey" data-dfn-for=SyncSubtleCrypto>decapsulateKey</dfn></td>
               <td>{{SubtleCrypto/decapsulateKey()}}</td>
             </tr>
             <tr>
-              <td><dfn id="dfn-SubtleCrypto-method-decapsulateBitsSync" data-dfn-for=SubtleCrypto>decapsulateBitsSync</dfn></td>
+              <td><dfn id="dfn-SyncSubtleCrypto-method-decapsulateBits" data-dfn-for=SyncSubtleCrypto>decapsulateBits</dfn></td>
               <td>{{SubtleCrypto/decapsulateBits()}}</td>
             </tr>
             <tr>
-              <td><dfn id="dfn-SubtleCrypto-method-getPublicKeySync" data-dfn-for=SubtleCrypto>getPublicKeySync</dfn></td>
+              <td><dfn id="dfn-SyncSubtleCrypto-method-getPublicKey" data-dfn-for=SyncSubtleCrypto>getPublicKey</dfn></td>
               <td>{{SubtleCrypto/getPublicKey()}}</td>
             </tr>
           </tbody>
         </table>
         <p>
-          These methods have the same algorithm availability and key-usage checks as their
-          corresponding Promise-returning methods.
+          In the {{SyncSubtleCrypto/encapsulateKey()}} steps, additionally replace
+          {{EncapsulatedKey}} with {{SyncEncapsulatedKey}}. The same registered operations and
+          key-usage strings are used by both interfaces, but synchronous availability is determined
+          independently as defined by [[webcrypto]].
+        </p>
+        <p>
+          For {{SyncSubtleCrypto/getPublicKey()}}, interpret support for deriving a public key as
+          support for doing so synchronously for the {{SyncSubtleCrypto}} receiver. This capability
+          is independent of both asynchronous public-key derivation and synchronous
+          `exportKey` support.
+        </p>
+        <p>
+          An algorithm <dfn>synchronously supports deriving a public key</dfn> for a
+          {{SyncSubtleCrypto}} object when the algorithm supports deriving a public key from a
+          private key and the user agent can perform that derivation synchronously for the object.
+          This is an implementation-defined capability scoped to the object's
+          [= relevant global object =].
         </p>
       </section>
 
@@ -995,9 +1029,9 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
       <section id="SubtleCrypto-method-supports">
         <h4>The supports method</h4>
         <p>
-          To check support for a synchronous counterpart defined by this specification or
-          [[webcrypto]], use the operation name of its corresponding Promise-returning method.
-          The names of synchronous counterparts are not recognized as operation names.
+          {{SubtleCrypto/supports()}} reports support for the Promise-returning interface.
+          {{SyncSubtleCrypto/supports()}} uses the same unsuffixed operation strings, but reports
+          the independent synchronous capabilities of its receiver.
         </p>
         <p>
           The <dfn id="dfn-SubtleCrypto-method-supports" data-dfn-for=SubtleCrypto data-lt="supports">supports(|operation|, |algorithm|, |length|)</dfn>
@@ -1079,7 +1113,7 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
                   <li>
                     <p>
                       Let |normalizedAlgorithm| be the result of
-                      <a data-cite="webcrypto#dfn-normalize-an-algorithm">normalizing an algorithm</a>, with
+                      [= normalize an algorithm for support | normalizing an algorithm for support =], with
                       `alg` set to |algorithm| and `op` set to
                       "`get shared key length`".
                     </p>
@@ -1098,7 +1132,7 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
                   <li>
                     <p>
                       Let |normalizedAdditionalAlgorithm| be the result of
-                      <a data-cite="webcrypto#dfn-normalize-an-algorithm">normalizing an algorithm</a>, with
+                      [= normalize an algorithm for support | normalizing an algorithm for support =], with
                       `alg` set to |additionalAlgorithm| and `op` set to
                       "`importKey`".
                     </p>
@@ -1150,7 +1184,7 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
                   <li>
                     <p>
                       Let |normalizedAdditionalAlgorithm| be the result of
-                      <a data-cite="webcrypto#dfn-normalize-an-algorithm">normalizing an algorithm</a>, with
+                      [= normalize an algorithm for support | normalizing an algorithm for support =], with
                       `alg` set to |additionalAlgorithm| and `op` set to
                       "`get key length`".
                     </p>
@@ -1180,15 +1214,44 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
           </li>
         </ol>
       </section>
+
+      <section id="SyncSubtleCrypto-method-supports">
+        <h4>The synchronous supports method</h4>
+        <p>
+          The <dfn id="dfn-SyncSubtleCrypto-method-supports" data-dfn-for=SyncSubtleCrypto data-lt="supports">supports(|operation|, |algorithm|, |length|)</dfn>
+          and <dfn id="dfn-SyncSubtleCrypto-method-supports-additionalAlgorithm" data-dfn-for=SyncSubtleCrypto data-lt="supports!overload-1">supports(|operation|, |algorithm|, |additionalAlgorithm|)</dfn>
+          methods perform the steps of the corresponding {{SubtleCrypto/supports()}} overloads,
+          with every invocation of [= check support for an algorithm | check support for an
+          algorithm =] or [= normalize an algorithm for support | normalize an algorithm for
+          support =] additionally given the {{SyncSubtleCrypto}} receiver as |subtle|.
+        </p>
+        <p>
+          Thus, these methods report only operations which can be performed synchronously for the
+          receiver, including every cryptographic component operation used by a composed method.
+          They do not recognize operation names with a `Sync` suffix.
+        </p>
+      </section>
     </section>
 
     <section id="partial-subtlecrypto-interface-checking-support-for-algorithm">
       <h3>Checking support for an algorithm</h3>
       <p>
+        The <dfn>normalize an algorithm for support</dfn> algorithm takes an operation name |op|,
+        an {{AlgorithmIdentifier}} |alg|, and an optional {{SyncSubtleCrypto}} object |subtle|,
+        which defaults to null. If |subtle| is null, or if |op| is the internal helper operation
+        `get key length` or `get shared key length`, return the result of
+        <a data-cite="webcrypto#dfn-normalize-an-algorithm">normalizing an algorithm</a>, with
+        `alg` set to |alg| and `op` set to |op|. Otherwise, return the result of
+        <a data-cite="webcrypto#dfn-normalize-an-algorithm-synchronously">normalizing an algorithm
+        for synchronous execution</a>, with `subtle` set to |subtle|, `alg` set to |alg| and `op`
+        set to |op|.
+      </p>
+      <p>
         The <dfn id="dfn-check-support-for-algorithm">check support for an algorithm</dfn> algorithm
         defines a process for checking whether the given algorithm is supported for the given operation.
         Its input is an operation name |op|, an {{AlgorithmIdentifier}} |alg|,
-        and a |length| parameter. Its output is a boolean.
+        a |length| parameter, and an optional {{SyncSubtleCrypto}} object |subtle|, which defaults
+        to null. Its output is a boolean.
         It behaves as follows:
       </p>
       <ol>
@@ -1221,6 +1284,13 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
                 </li>
                 <li>
                   <p>
+                    If |subtle| is not null, return true if |normalizedAlgorithm|
+                    [= synchronously supports deriving a public key =] for |subtle|, and false
+                    otherwise.
+                  </p>
+                </li>
+                <li>
+                  <p>
                     If the cryptographic algorithm identified by |normalizedAlgorithm|
                     does not support deriving a public key from a private key,
                     then return false.
@@ -1238,8 +1308,8 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
         <li>
           <p>
             Let |normalizedAlgorithm| be the result of
-            <a data-cite="webcrypto#dfn-normalize-an-algorithm">normalizing an algorithm</a>, with
-            `alg` set to |alg| and `op` set to |op|.
+            [= normalize an algorithm for support | normalizing an algorithm for support =], with
+            `alg` set to |alg|, `op` set to |op| and `subtle` set to |subtle|.
           </p>
         </li>
         <li>
@@ -1252,7 +1322,7 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
                     If |op| is "`wrapKey`",
                     return the result of [= check support for an algorithm | checking support for an algorithm =]
                     with `op` set to "`encrypt`"
-                    and `alg` set to |alg|.
+                    and `alg` set to |alg|, and with `subtle` set to |subtle|.
                   </p>
                 </li>
                 <li>
@@ -1260,7 +1330,7 @@ enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits
                     If |op| is "`unwrapKey`",
                     return the result of [= check support for an algorithm | checking support for an algorithm =]
                     with `op` set to "`decrypt`"
-                    and `alg` set to |alg|.
+                    and `alg` set to |alg|, and with `subtle` set to |subtle|.
                   </p>
                 </li>
                 <li>
@@ -1362,6 +1432,11 @@ dictionary EncapsulatedKey {
   ArrayBuffer ciphertext;
 };
 
+dictionary SyncEncapsulatedKey {
+  SyncCryptoKey sharedKey;
+  ArrayBuffer ciphertext;
+};
+
 dictionary EncapsulatedBits {
   ArrayBuffer sharedKey;
   ArrayBuffer ciphertext;
@@ -1370,6 +1445,13 @@ dictionary EncapsulatedBits {
     <p>
       The <dfn data-idl id="dfn-EncapsulatedKey">EncapsulatedKey</dfn> dictionary represents an
       encapsulated key comprised of a <dfn data-idl data-dfn-for=EncapsulatedKey id="dfn-EncapsulatedKey-sharedKey">sharedKey</dfn> and a <dfn data-idl data-dfn-for=EncapsulatedKey id="dfn-EncapsulatedKey-ciphertext">ciphertext</dfn>.
+    </p>
+    <p>
+      The <dfn data-idl id="dfn-SyncEncapsulatedKey">SyncEncapsulatedKey</dfn> dictionary is the
+      synchronous counterpart of {{EncapsulatedKey}} and contains a
+      <dfn data-idl data-dfn-for=SyncEncapsulatedKey>sharedKey</dfn> that is a
+      {{SyncCryptoKey}}, together with an ArrayBuffer
+      <dfn data-idl data-dfn-for=SyncEncapsulatedKey>ciphertext</dfn>.
     </p>
     <p>
       The <dfn data-idl id="dfn-EncapsulatedBits">EncapsulatedBits</dfn> dictionary represents
@@ -6266,10 +6348,11 @@ dictionary AeadParams : Algorithm {
       </p>
       <p class="note">
         Although technically possible to implement, using cSHAKE as part of other algorithms
-        outside {{SubtleCrypto/digest()}} or {{SubtleCrypto/digestSync()}} (such as in the
+        outside {{SubtleCrypto/digest()}} or {{SyncSubtleCrypto/digest()}} (such as in the
         {{HmacKeyGenParams/hash}} parameter of HMAC)
         is unlikely to be useful and not expected to be supported.
-        The result of {{SubtleCrypto/supports()}} should reflect whether such uses are supported.
+        The results of {{SubtleCrypto/supports()}} and {{SyncSubtleCrypto/supports()}} should
+        independently reflect whether such uses are supported.
       </p>
     </section>
     <section id="cshake-registration">
@@ -6403,10 +6486,11 @@ dictionary CShakeParams : Algorithm {
       </p>
       <p class="note">
         Although technically possible to implement, using TurboSHAKE as part of other algorithms
-        outside {{SubtleCrypto/digest()}} or {{SubtleCrypto/digestSync()}} (such as in the
+        outside {{SubtleCrypto/digest()}} or {{SyncSubtleCrypto/digest()}} (such as in the
         {{HmacKeyGenParams/hash}} parameter of HMAC)
         is unlikely to be useful and not expected to be supported.
-        The result of {{SubtleCrypto/supports()}} should reflect whether such uses are supported.
+        The results of {{SubtleCrypto/supports()}} and {{SyncSubtleCrypto/supports()}} should
+        independently reflect whether such uses are supported.
       </p>
     </section>
     <section id="turboshake-registration">
@@ -6544,10 +6628,11 @@ dictionary TurboShakeParams : Algorithm {
       </p>
       <p class="note">
         Although technically possible to implement, using KangarooTwelve as part of other algorithms
-        outside {{SubtleCrypto/digest()}} or {{SubtleCrypto/digestSync()}} (such as in the
+        outside {{SubtleCrypto/digest()}} or {{SyncSubtleCrypto/digest()}} (such as in the
         {{HmacKeyGenParams/hash}} parameter of HMAC)
         is unlikely to be useful and not expected to be supported.
-        The result of {{SubtleCrypto/supports()}} should reflect whether such uses are supported.
+        The results of {{SubtleCrypto/supports()}} and {{SyncSubtleCrypto/supports()}} should
+        independently reflect whether such uses are supported.
       </p>
     </section>
     <section id="kangarootwelve-registration">
